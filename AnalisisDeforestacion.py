@@ -15,8 +15,9 @@ def cargar_datos():
             df = pd.read_csv(archivo)
             # Convertir a GeoDataFrame usando las columnas de latitud y longitud
             gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['Longitud'], df['Latitud']))
-            # Interpolación para rellenar valores faltantes
-            gdf = gdf.interpolate(method='linear', axis=0, limit_direction='both')
+            # Interpolación para rellenar valores faltantes solo en columnas numéricas
+            gdf = gdf.apply(lambda col: col.interpolate(method='linear', axis=0, limit_direction='both') 
+                            if col.dtype in ['float64', 'int64'] else col)
             return gdf
     
     elif opcion == "Leer desde URL":
@@ -26,8 +27,9 @@ def cargar_datos():
             df = pd.read_csv(url)
             # Convertir a GeoDataFrame
             gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df['Longitud'], df['Latitud']))
-            # Interpolación para rellenar valores faltantes
-            gdf = gdf.interpolate(method='linear', axis=0, limit_direction='both')
+            # Interpolación para rellenar valores faltantes solo en columnas numéricas
+            gdf = gdf.apply(lambda col: col.interpolate(method='linear', axis=0, limit_direction='both') 
+                            if col.dtype in ['float64', 'int64'] else col)
             return gdf
 
     return None
