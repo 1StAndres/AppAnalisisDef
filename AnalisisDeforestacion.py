@@ -10,6 +10,7 @@ data_url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-inge
 @st.cache_data
 def load_data():
     df = pd.read_csv(data_url)
+    df.columns = df.columns.str.strip().str.lower()  # Normalizar nombres de columnas
     return df
 
 # Cargar datos
