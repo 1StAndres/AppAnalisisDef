@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 
 # Función para cargar el archivo CSV desde una URL o desde el sistema local
-@st.cache
 def cargar_datos():
     # Opción para elegir la fuente de los datos
     opcion = st.selectbox("¿Cómo te gustaría cargar los datos?", ["Subir archivo CSV", "Leer desde URL"])
@@ -64,3 +63,4 @@ def main():
 # Ejecutar la app
 if __name__ == "__main__":
     main()
+
