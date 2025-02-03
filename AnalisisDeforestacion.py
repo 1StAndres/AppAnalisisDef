@@ -1,13 +1,15 @@
 import streamlit as st
 import pandas as pd
 import folium
+import matplotlib.pyplot as plt
+from sklearn.cluster import KMeans
 
 # Cargar los datos desde la URL
 url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
 df = pd.read_csv(url)
 
 # Eliminar filas con valores nulos en las columnas Latitud y Longitud
-df = df.dropna(subset=['Latitud', 'Longitud'])
+df = df.dropna(subset=['Latitud', 'Longitud', 'Superficie_Deforestada'])
 
 # Mostrar los primeros registros para confirmar que los datos se cargaron correctamente
 st.write(df.head())
@@ -43,6 +45,43 @@ st.write(mapa_altitud)
 st.subheader("Mapa de Zonas Deforestadas por Precipitación")
 mapa_precipitacion = mapa_deforestacion(df[df['Precipitacion'].notnull()], 'Precipitacion', color='green')
 st.write(mapa_precipitacion)
+
+# Análisis de Clústeres de Superficies Deforestadas
+st.subheader("Análisis de Clúster de Superficies Deforestadas")
+X = df[['Latitud', 'Longitud', 'Superficie_Deforestada']].dropna()
+
+# KMeans para clústeres
+kmeans = KMeans(n_clusters=3, random_state=0).fit(X[['Latitud', 'Longitud', 'Superficie_Deforestada']])
+
+# Agregar las etiquetas de clúster al DataFrame
+df['Cluster'] = kmeans.labels_
+
+# Mostrar los clústeres en un mapa
+def mapa_clustres(df):
+    mapa = folium.Map(location=[df['Latitud'].mean(), df['Longitud'].mean()], zoom_start=6)
+    
+    # Mostrar los puntos de los clústeres
+    folium.MarkerCluster(
+        locations=[(row['Latitud'], row['Longitud']) for _, row in df.iterrows()],
+        popup=[f"Cluster: {row['Cluster']}, Superficie: {row['Superficie_Deforestada']}" for _, row in df.iterrows()]
+    ).add_to(mapa)
+    
+    return mapa
+
+# Mostrar el mapa de clústeres
+mapa_clustres_resultado = mapa_clustres(df)
+st.write(mapa_clustres_resultado)
+
+# Gráfico de torta según tipo de vegetación
+st.subheader("Gráfico de Torta según Tipo de Vegetación")
+tipo_vegetacion_counts = df['Tipo_Vegetacion'].value_counts()
+
+fig, ax = plt.subplots()
+ax.pie(tipo_vegetacion_counts, labels=tipo_vegetacion_counts.index, autopct='%1.1f%%', startangle=90, colors=['red', 'green', 'blue', 'orange', 'purple'])
+ax.axis('equal')  # Equal aspect ratio ensures that pie is drawn as a circle.
+
+# Mostrar el gráfico de torta
+st.pyplot(fig)
 
 # Filtros personalizados del usuario
 st.sidebar.header("Filtros Personalizados")
