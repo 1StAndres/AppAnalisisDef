@@ -9,12 +9,9 @@ from shapely.geometry import Point
 data_url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
 
 @st.cache_data
-def load_data():
-    df = pd.read_csv(data_url)
-    return df
 
-# Cargar datos
-df = load_data()
+df = pd.read_csv(data_url)
+
 
 # Convertir a GeoDataFrame
 if "Latitud" in df.columns and "Longitud" in df.columns:
