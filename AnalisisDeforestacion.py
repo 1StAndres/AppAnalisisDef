@@ -28,6 +28,22 @@ def cargar_datos():
 
     return None
 
+# Función para mostrar el análisis de datos de deforestación
+def analisis_deforestacion(gdf):
+    st.subheader("Análisis de Deforestación")
+    
+    # Cálculo de superficie deforestada total
+    superficie_total = gdf['Superficie_Deforestada'].sum()
+    st.write(f"Superficie total deforestada: {superficie_total} hectáreas")
+    
+    # Cálculo de tasa de deforestación promedio
+    tasa_promedio = gdf['Tasa_Deforestacion'].mean()
+    st.write(f"Tasa promedio de deforestación: {tasa_promedio}%")
+    
+    # Visualización de resumen de las columnas relevantes
+    st.write("Resumen de las primeras filas del dataset:")
+    st.write(gdf[['Fecha', 'Superficie_Deforestada', 'Tasa_Deforestacion', 'Tipo_Vegetacion', 'Altitud']].head())
+
 # Función para mostrar el mapa según la variable seleccionada
 def mostrar_mapa(gdf):
     st.subheader("Visualizar mapa de zonas deforestadas")
@@ -105,12 +121,12 @@ def main():
         st.subheader("Vista previa de los datos")
         st.write(gdf.head())
 
+        # Realizar análisis de deforestación
+        analisis_deforestacion(gdf)
+
         # Mostrar el mapa con las zonas deforestadas
         mostrar_mapa(gdf)
 
 # Ejecutar la app
-if __name__ == "__main__":
-    main()
-
 if __name__ == "__main__":
     main()
