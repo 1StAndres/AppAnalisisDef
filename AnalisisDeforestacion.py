@@ -44,7 +44,7 @@ def mostrar_mapa(gdf):
     
     # Función para asignar color a los puntos según el valor de la variable
     def asignar_color(valor, variable):
-        if variable == "Tipo de Vegetación":
+        if variable == "Tipo_Vegetacion":
             # Asignar un color basado en el tipo de vegetación
             colores = {"Bosque": "green", "Selva": "darkgreen", "Pastizales": "yellow", "Desierto": "brown"}
             return colores.get(valor, "gray")
@@ -56,12 +56,20 @@ def mostrar_mapa(gdf):
                 return "orange"
             else:
                 return "red"
-        elif variable == "Precipitación":
+        elif variable == "Precipitacion":
             # Asignar color según la precipitación
             if valor < 1000:
                 return "blue"
             elif valor < 2000:
                 return "yellow"
+            else:
+                return "red"
+        elif variable == "Superficie_Deforestada":
+            # Asignar color según la superficie deforestada (Ejemplo: más rojo para más deforestación)
+            if valor < 50:
+                return "green"
+            elif valor < 100:
+                return "orange"
             else:
                 return "red"
     
@@ -101,5 +109,8 @@ def main():
         mostrar_mapa(gdf)
 
 # Ejecutar la app
+if __name__ == "__main__":
+    main()
+
 if __name__ == "__main__":
     main()
