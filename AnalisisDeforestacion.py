@@ -2,7 +2,6 @@ import streamlit as st
 import geopandas as gpd
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 from sklearn.cluster import KMeans
 from shapely.geometry import Point
 import requests
@@ -25,18 +24,18 @@ with zipfile.ZipFile(io.BytesIO(r.content)) as zip_ref:
 
 gdf_world = gpd.read_file("ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp")
 
-# Función para filtrar datos según los rangos seleccionados
-def filtrar_datos(rangos):
-    df_filtrado = gdf_deforestacion.copy()
-    for columna, (min_val, max_val) in rangos.items():
-        df_filtrado = df_filtrado[(df_filtrado[columna] >= min_val) & (df_filtrado[columna] <= max_val)]
-    return df_filtrado
+# Función para filtrar datos sin usar ciclos
+def filtrar_datos(df, rangos):
+    # Crear la máscara booleana inicial con True (sin ciclo)
+    mask = (df[variables] >= pd.Series([rangos[var][0] for var in variables], index=variables)) & (df[variables] <= pd.Series([rangos[var][1] for var in variables], index=variables))
+    return df[mask.all(axis=1)]
 
 # Función para el análisis de clústeres
 def analisis_clusters(df):
+    df_cluster = df[['Superficie_Deforestada', 'Altitud']].dropna()
     kmeans = KMeans(n_clusters=3)
-    df['Cluster'] = kmeans.fit_predict(df[['Superficie_Deforestada', 'Altitud']])
-    return df
+    df_cluster['Cluster'] = kmeans.fit_predict(df_cluster)
+    return df_cluster
 
 # Función para mostrar el gráfico de torta
 def grafico_torta(df):
@@ -46,6 +45,10 @@ def grafico_torta(df):
     ax.axis('equal')
     st.pyplot(fig)
 
+# Función para obtener min y max de las columnas numéricas
+def obtener_min_max(df, var):
+    return df[var].min(), df[var].max()
+
 # Aplicación Streamlit
 st.title('Análisis de Datos de Deforestación')
 
@@ -54,14 +57,22 @@ variables = ['Latitud', 'Longitud', 'Superficie_Deforestada', 'Tasa_Deforestacio
              'Tipo_Vegetacion', 'Altitud', 'Pendiente', 'Distancia_Carretera', 
              'Precipitacion', 'Temperatura']
 
-rangos = {}
-for var in variables:
-    min_val = float(st.number_input(f'Valor mínimo de {var}', value=float(csv_data[var].min())))
-    max_val = float(st.number_input(f'Valor máximo de {var}', value=float(csv_data[var].max())))
-    rangos[var] = (min_val, max_val)
+# Obtener rangos para cada variable sin usar ciclo
+min_vals = pd.Series([obtener_min_max(csv_data, var)[0] for var in variables], index=variables)
+max_vals = pd.Series([obtener_min_max(csv_data, var)[1] for var in variables], index=variables)
+
+# Solicitar a los usuarios los valores de mínimo y máximo
+rangos = pd.DataFrame({
+    'min': min_vals,
+    'max': max_vals
+})
+
+# Los valores proporcionados por el usuario
+rangos['min'] = rangos['min'].apply(lambda x: st.number_input(f'Valor mínimo de {x.name}', value=x))
+rangos['max'] = rangos['max'].apply(lambda x: st.number_input(f'Valor máximo de {x.name}', value=x))
 
 # Filtrar datos según los rangos seleccionados
-df_filtrado = filtrar_datos(rangos)
+df_filtrado = filtrar_datos(gdf_deforestacion, rangos.to_dict(orient='index'))
 
 # Mostrar mapa de deforestación filtrado
 st.subheader('Mapa de deforestación filtrado')
@@ -73,7 +84,7 @@ st.pyplot(fig)
 # Análisis de clústeres
 st.subheader('Análisis de clústeres')
 df_clusters = analisis_clusters(df_filtrado)
-st.write(df_clusters[['Latitud', 'Longitud', 'Cluster']].head())
+st.write(df_clusters[['Superficie_Deforestada', 'Altitud', 'Cluster']].head())
 
 # Mostrar gráfico de torta
 st.subheader('Gráfico de torta según tipo de vegetación')
