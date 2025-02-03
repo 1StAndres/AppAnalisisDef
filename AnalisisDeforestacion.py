@@ -1,62 +1,43 @@
-import streamlit as st
-import pandas as pd
 import geopandas as gpd
-import folium
-from streamlit_folium import folium_static
-from shapely.geometry import Point
+import matplotlib.pyplot as plt
 
 # URL del CSV
 data_url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
 
-@st.cache_data
-def load_data(url):
-    try:
-        df = pd.read_csv(url)
-        return df
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return None
+# Ruta del mapa del mundo
+ruta_0 = "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip"
 
+# Cargar el mapa del mundo
+mundo_dataframe = gpd.read_file(ruta_0)
+
+# Cargar datos de deforestación (reutilizar la función load_data)
 df = load_data(data_url)
 
-if df is None:  # Stop execution if data loading failed
-    st.stop()
+if df is None:
+    print("Error al cargar los datos. Saliendo del programa.")
+    exit()
 
 # Check for required columns *after* loading the data
 required_columns = ["Latitud", "Longitud"]
 if all(col in df.columns for col in required_columns):
     gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["Longitud"], df["Latitud"]))
 
-    # Now that the data is loaded and columns are checked, set the title
-    st.title("Análisis de Deforestación")
+    # Crear el mapa base con el mapa del mundo
+    fig, ax = plt.subplots(figsize=(10, 10))
+    mundo_dataframe.plot(ax=ax, color='lightgray', edgecolor='black')
 
-    # ... (rest of your Streamlit code)
+    # Superponer los puntos de deforestación
+    gdf.plot(ax=ax, marker='o', color='red', markersize=10)
 
-    # Vista previa de los datos
-    st.subheader("Vista previa de los datos")
-    st.dataframe(df.head())
+    # Ajustar la vista del mapa (opcional, si quieres enfocar una región específica)
+    # ax.set_xlim(-60, -30)  # Ejemplo: enfocar en Sudamérica
+    # ax.set_ylim(-30, 10)
 
-    # Mapa básico
-    st.subheader("Mapa de zonas deforestadas")
-
-    if "geometry" in gdf:
-        mapa = folium.Map(location=[gdf["Latitud"].mean(), gdf["Longitud"].mean()], zoom_start=5)
-
-        # Agregar puntos al mapa sin usar bucles explícitos (improved)
-        for _, row in gdf.iterrows():  # More efficient than apply for this case
-            folium.CircleMarker(
-                location=[row.geometry.y, row.geometry.x],
-                radius=3,
-                color="red",
-                fill=True,
-                fill_color="red"
-            ).add_to(mapa)
-
-        folium_static(mapa)
-    else:
-        st.error("No se pudo generar el mapa debido a problemas con las coordenadas.")
+    # Guardar el mapa en un archivo
+    plt.savefig('mapa_deforestacion_geopandas.png')
+    print("Mapa generado exitosamente en mapa_deforestacion_geopandas.png")
 
 else:
-    st.error(f"Las columnas {required_columns} no se encuentran en el DataFrame. Verifica los nombres de las columnas.")
-    st.write(df.columns.tolist()) # Show available columns for debugging
-    st.stop() # Stop execution if columns are missing
+    print(f"Las columnas {required_columns} no se encuentran en el DataFrame. "
+          f"Verifica los nombres de las columnas.")
+    print(df.columns.tolist())
