@@ -48,12 +48,8 @@ def analisis_deforestacion(gdf):
 def mostrar_mapa(gdf):
     st.subheader("Visualizar mapa de zonas deforestadas")
     
-    # Mostrar las columnas disponibles en el GeoDataFrame
-    columnas = gdf.columns.to_list()
-    st.write("Columnas disponibles en el dataset:", columnas)
-    
     # Selección de variable para el mapa
-    variable = st.selectbox("Selecciona la variable para visualizar en el mapa", columnas)
+    variable = st.selectbox("Selecciona la variable para visualizar en el mapa", gdf.columns.to_list())
     
     # Inicializamos el mapa centrado en un punto aproximado
     m = folium.Map(location=[gdf['Latitud'].mean(), gdf['Longitud'].mean()], zoom_start=6)
@@ -130,3 +126,4 @@ def main():
 # Ejecutar la app
 if __name__ == "__main__":
     main()
+
