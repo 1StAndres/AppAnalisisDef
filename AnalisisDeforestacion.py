@@ -10,7 +10,6 @@ data_url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-inge
 @st.cache_data
 def load_data():
     df = pd.read_csv(data_url)
-    df.columns = df.columns.str.strip().str.lower()  # Normalizar nombres de columnas
     return df
 
 # Cargar datos
@@ -27,7 +26,7 @@ st.dataframe(df.head())
 st.subheader("Mapa de zonas deforestadas")
 mapa = folium.Map(location=[df["latitud"].mean(), df["longitud"].mean()], zoom_start=5)
 
-data = df[["latitud", "longitud"]].dropna().values.tolist()
+data = df[["Latitud", "Longitud"]].dropna().values.tolist()
 folium.FeatureGroup(name="Deforestación").add_child(
     folium.plugins.MarkerCluster(locations=data, popups=df["tipo_vegetacion"].tolist())
 ).add_to(mapa)
