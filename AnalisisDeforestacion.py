@@ -28,7 +28,6 @@ mapa = folium.Map(location=[df["Latitud"].mean(), df["Longitud"].mean()], zoom_s
 
 data = df[["Latitud", "Longitud"]].dropna().values.tolist()
 folium.FeatureGroup(name="Deforestación").add_child(
-    folium.plugins.MarkerCluster(locations=data, popups=df["tipo_vegetacion"].tolist())
-).add_to(mapa)
+    folium.plugins.MarkerCluster(locations=data, popups=df["tipo_vegetacion"].tolist())).add_to(mapa)
 
 folium_static(mapa)
