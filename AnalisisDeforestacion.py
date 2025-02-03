@@ -1,8 +1,10 @@
 import streamlit as st
 import pandas as pd
+import geopandas as gpd
 import folium
 import matplotlib.pyplot as plt
 from sklearn.cluster import KMeans
+from shapely.geometry import Point
 
 # Cargar el archivo CSV desde la URL proporcionada
 url = 'https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv'
@@ -11,29 +13,36 @@ df = pd.read_csv(url)
 # Interpolación de valores faltantes
 df = df.interpolate(method='linear', axis=0)
 
+# Convertir el DataFrame a GeoDataFrame usando las coordenadas de Latitud y Longitud
+geometry = [Point(xy) for xy in zip(df['Longitud'], df['Latitud'])]
+gdf = gpd.GeoDataFrame(df, geometry=geometry)
+
+# Establecer el CRS (sistema de referencia de coordenadas)
+gdf.set_crs("EPSG:4326", inplace=True)
+
 # Análisis de clústeres de superficies deforestadas
 X = df[['Latitud', 'Longitud', 'Superficie_Deforestada']].dropna()
 kmeans = KMeans(n_clusters=3, random_state=0).fit(X)
 df['Cluster'] = kmeans.labels_
 
-# Generación de mapas
-def generar_mapa(df, color='red'):
-    mapa = folium.Map(location=[df['Latitud'].mean(), df['Longitud'].mean()], zoom_start=6)
-    for _, row in df.iterrows():
+# Función para generar mapas interactivos con Folium
+def generar_mapa_folium(gdf, color='red'):
+    mapa = folium.Map(location=[gdf['Latitud'].mean(), gdf['Longitud'].mean()], zoom_start=6)
+    for _, row in gdf.iterrows():
         folium.CircleMarker(location=[row['Latitud'], row['Longitud']], radius=5, color=color, fill=True, fill_color=color, fill_opacity=0.6).add_to(mapa)
     return mapa
 
-# Mostrar mapas de zonas deforestadas
+# Mostrar mapas de zonas deforestadas con GeoPandas
 st.subheader("Mapa de Zonas Deforestadas por Tipo de Vegetación")
-mapa_vegetacion = generar_mapa(df[df['Tipo_Vegetacion'].notnull()], color='red')
+mapa_vegetacion = generar_mapa_folium(gdf[gdf['Tipo_Vegetacion'].notnull()], color='red')
 st.write(mapa_vegetacion)
 
 st.subheader("Mapa de Zonas Deforestadas por Altitud")
-mapa_altitud = generar_mapa(df[df['Altitud'].notnull()], color='blue')
+mapa_altitud = generar_mapa_folium(gdf[gdf['Altitud'].notnull()], color='blue')
 st.write(mapa_altitud)
 
 st.subheader("Mapa de Zonas Deforestadas por Precipitación")
-mapa_precipitacion = generar_mapa(df[df['Precipitacion'].notnull()], color='green')
+mapa_precipitacion = generar_mapa_folium(gdf[gdf['Precipitacion'].notnull()], color='green')
 st.write(mapa_precipitacion)
 
 # Gráfico de torta de tipos de vegetación
@@ -66,7 +75,7 @@ if seleccionadas:
     # Mostrar el mapa filtrado
     if not df_filtrado.empty:
         st.subheader("Mapa Personalizado según los filtros")
-        mapa_personalizado = generar_mapa(df_filtrado, 'orange')
+        mapa_personalizado = generar_mapa_folium(df_filtrado, 'orange')
         st.write(mapa_personalizado)
     else:
         st.write("No hay datos que coincidan con los filtros seleccionados.")
