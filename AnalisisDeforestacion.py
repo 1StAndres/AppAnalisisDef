@@ -32,8 +32,12 @@ def cargar_datos():
 def mostrar_mapa(gdf):
     st.subheader("Visualizar mapa de zonas deforestadas")
     
+    # Mostrar las columnas disponibles en el GeoDataFrame
+    columnas = gdf.columns.to_list()
+    st.write("Columnas disponibles en el dataset:", columnas)
+    
     # Selección de variable para el mapa
-    variable = st.selectbox("Selecciona la variable para visualizar en el mapa", ["Tipo de Vegetación", "Altitud", "Precipitación"])
+    variable = st.selectbox("Selecciona la variable para visualizar en el mapa", columnas)
     
     # Inicializamos el mapa centrado en un punto aproximado
     m = folium.Map(location=[gdf['Latitud'].mean(), gdf['Longitud'].mean()], zoom_start=6)
@@ -63,15 +67,19 @@ def mostrar_mapa(gdf):
     
     # Añadir los puntos al mapa
     for idx, row in gdf.iterrows():
-        color = asignar_color(row[variable], variable)
-        folium.CircleMarker(
-            location=[row['Latitud'], row['Longitud']],
-            radius=5,
-            color=color,
-            fill=True,
-            fill_color=color,
-            fill_opacity=0.6
-        ).add_to(m)
+        try:
+            color = asignar_color(row[variable], variable)
+            folium.CircleMarker(
+                location=[row['Latitud'], row['Longitud']],
+                radius=5,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.6
+            ).add_to(m)
+        except KeyError:
+            st.error(f"La columna '{variable}' no existe en los datos.")
+            return
     
     # Mostrar el mapa
     st.markdown("### Mapa de Zonas Deforestadas")
