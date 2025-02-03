@@ -24,7 +24,7 @@ st.dataframe(df.head())
 
 # Mapa básico
 st.subheader("Mapa de zonas deforestadas")
-mapa = folium.Map(location=[df["latitud"].mean(), df["longitud"].mean()], zoom_start=5)
+mapa = folium.Map(location=[df["Latitud"].mean(), df["Longitud"].mean()], zoom_start=5)
 
 data = df[["Latitud", "Longitud"]].dropna().values.tolist()
 folium.FeatureGroup(name="Deforestación").add_child(
