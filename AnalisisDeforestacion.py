@@ -6,6 +6,9 @@ import folium
 url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
 df = pd.read_csv(url)
 
+# Eliminar filas con valores nulos en las columnas Latitud y Longitud
+df = df.dropna(subset=['Latitud', 'Longitud'])
+
 # Mostrar los primeros registros para confirmar que los datos se cargaron correctamente
 st.write(df.head())
 
@@ -16,7 +19,7 @@ def mapa_deforestacion(df, columna, color='red'):
     
     # Agregar todos los puntos al mapa usando la columna seleccionada
     folium.CircleMarker(
-        location=[df['Latitud'], df['Longitud']],
+        location=[df['Latitud'].mean(), df['Longitud'].mean()],
         radius=5,
         color=color,
         fill=True,
