@@ -4,6 +4,51 @@ import streamlit as st
 import pandas as pd
 from folium.plugins import HeatMap
 
+def mostrar_mapa(gdf, variable):
+    st.subheader(f"Mapa de Zonas Deforestadas por {variable}")
+
+    # Inicializamos el mapa centrado en un punto aproximado
+    m = folium.Map(location=[gdf['Latitud'].mean(), gdf['Longitud'].mean()], zoom_start=6)
+
+    # ... (función asignar_color sin cambios)
+
+    # Añadir los puntos al mapa
+    for idx, row in gdf.iterrows():
+        try:
+            color = asignar_color(row[variable], variable)
+            folium.CircleMarker(
+                location=[row['Latitud'], row['Longitud']],
+                radius=5,
+                color=color,
+                fill=True,
+                fill_color=color,
+                fill_opacity=0.6
+            ).add_to(m)
+        except KeyError:
+            st.error(f"La columna '{variable}' no existe en los datos.")
+            return
+
+    # Mostrar el mapa
+    st.write(m)
+
+# Función principal para la app
+def main():
+    st.title("Análisis de Deforestación")
+
+    # Cargar los datos
+    gdf = cargar_datos()
+
+    if gdf is not None:
+        # ... (código anterior sin cambios)
+
+        # Mostrar el mapa con las zonas deforestadas por tipo de vegetación
+        mostrar_mapa(gdf, "Tipo_Vegetacion")
+
+        # Mostrar el mapa con las zonas deforestadas por altitud
+        mostrar_mapa(gdf, "Altitud")
+
+        # Mostrar el mapa con las zonas deforestadas por precipitación
+        mostrar_mapa(gdf, "Precipitacion")
 # Función para cargar los datos usando GeoPandas
 def cargar_datos():
     opcion = st.selectbox("¿Cómo te gustaría cargar los datos?", ["Subir archivo CSV", "Leer desde URL"])
