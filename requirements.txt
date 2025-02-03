@@ -1,7 +1,6 @@
 streamlit
-pandas
 geopandas
+requests
+scikit-learn
 matplotlib
-folium
-streamlit-folium
 seaborn
