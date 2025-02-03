@@ -1,87 +1,80 @@
 import streamlit as st
 import geopandas as gpd
-import matplotlib.pyplot as plt
-import requests
-import io
-import zipfile
 import pandas as pd
-import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.cluster import KMeans
+from shapely.geometry import Point
+import requests
+import zipfile
+import io
 
-# Función para cargar datos (con caché)
-@st.cache_data
-def load_data(url):
-    try:
-        df = pd.read_csv(url)
-        return df
-    except Exception as e:
-        st.error(f"Error loading data: {e}")
-        return None
+# Cargar datos
+url_csv = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
+csv_data = pd.read_csv(url_csv)
 
-# URL del CSV
-data_url = "https://raw.githubusercontent.com/gabrielawad/programacion-para-ingenieria/refs/heads/main/archivos-datos/aplicaciones/deforestacion.csv"
+# Convertir las coordenadas a un objeto GeoDataFrame
+geometry = [Point(xy) for xy in zip(csv_data['Longitud'], csv_data['Latitud'])]
+gdf_deforestacion = gpd.GeoDataFrame(csv_data, geometry=geometry)
 
-# URL del archivo zip del mapa del mundo
-ruta_zip = "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip"
+# Cargar el mapa base de países
+url_shapefile = "https://naturalearth.s3.amazonaws.com/50m_cultural/ne_50m_admin_0_countries.zip"
+r = requests.get(url_shapefile)
+with zipfile.ZipFile(io.BytesIO(r.content)) as zip_ref:
+    zip_ref.extractall("ne_50m_admin_0_countries")
 
-# Descargar y procesar el archivo zip (con manejo de errores)
-try:
-    response = requests.get(ruta_zip, stream=True)
-    response.raise_for_status()
+gdf_world = gpd.read_file("ne_50m_admin_0_countries/ne_50m_admin_0_countries.shp")
 
-    with open("temp.zip", "wb") as f:
-        for chunk in response.iter_content(chunk_size=8192):
-            f.write(chunk)
+# Función para filtrar datos según los rangos seleccionados
+def filtrar_datos(rangos):
+    df_filtrado = gdf_deforestacion.copy()
+    for columna, (min_val, max_val) in rangos.items():
+        df_filtrado = df_filtrado[(df_filtrado[columna] >= min_val) & (df_filtrado[columna] <= max_val)]
+    return df_filtrado
 
-    with zipfile.ZipFile("temp.zip", 'r') as z:
-        shp_file = next((f for f in z.namelist() if f.endswith('.shp')), None)
-        if shp_file:
-            with z.open(shp_file) as f:
-                mundo_dataframe = gpd.read_file(f)
-        else:
-            raise ValueError("No se encontró el archivo .shp dentro del archivo zip.")
+# Función para el análisis de clústeres
+def analisis_clusters(df):
+    kmeans = KMeans(n_clusters=3)
+    df['Cluster'] = kmeans.fit_predict(df[['Superficie_Deforestada', 'Altitud']])
+    return df
 
-    os.remove("temp.zip")
-
-except requests.exceptions.RequestException as e:
-    st.error(f"Error al descargar el mapa mundial: {e}")
-    st.stop()
-except (zipfile.BadZipFile, ValueError) as e:
-    st.error(f"Error al procesar el archivo zip: {e}")
-    st.stop()
-except Exception as e:
-    st.error(f"Un error inesperado ocurrió: {e}")
-    st.stop()
-
-# Cargar datos de deforestación
-df = load_data(data_url)
-
-if df is None:
-    st.stop()
-
-# Verificar columnas requeridas
-required_columns = ["Latitud", "Longitud"]
-if all(col in df.columns for col in required_columns):
-    gdf = gpd.GeoDataFrame(df, geometry=gpd.points_from_xy(df["Longitud"], df["Latitud"]))
-
-    # Título de la aplicación
-    st.title("Análisis de Deforestación")
-
-    # Vista previa de los datos
-    st.subheader("Vista previa de los datos")
-    st.dataframe(df.head())
-
-    # Mapa de zonas deforestadas
-    st.subheader("Mapa de zonas deforestadas")
-
-    # Crear el mapa (usando matplotlib y superponiendo mapas)
-    fig, ax = plt.subplots(figsize=(10, 10))
-    mundo_dataframe.plot(ax=ax, color='lightgray', edgecolor='black')
-    gdf.plot(ax=ax, marker='o', color='red', markersize=10)
-
-    # Mostrar el mapa en Streamlit
+# Función para mostrar el gráfico de torta
+def grafico_torta(df):
+    vegetacion_counts = df['Tipo_Vegetacion'].value_counts()
+    fig, ax = plt.subplots()
+    ax.pie(vegetacion_counts, labels=vegetacion_counts.index, autopct='%1.1f%%', startangle=90)
+    ax.axis('equal')
     st.pyplot(fig)
 
-else:
-    st.error(f"Las columnas {required_columns} no se encuentran en el DataFrame. Verifica los nombres de las columnas.")
-    st.write(df.columns.tolist())
-    st.stop()
+# Aplicación Streamlit
+st.title('Análisis de Datos de Deforestación')
+
+# Selección de variables para filtrar
+variables = ['Latitud', 'Longitud', 'Superficie_Deforestada', 'Tasa_Deforestacion', 
+             'Tipo_Vegetacion', 'Altitud', 'Pendiente', 'Distancia_Carretera', 
+             'Precipitacion', 'Temperatura']
+
+rangos = {}
+for var in variables:
+    min_val = float(st.number_input(f'Valor mínimo de {var}', value=float(csv_data[var].min())))
+    max_val = float(st.number_input(f'Valor máximo de {var}', value=float(csv_data[var].max())))
+    rangos[var] = (min_val, max_val)
+
+# Filtrar datos según los rangos seleccionados
+df_filtrado = filtrar_datos(rangos)
+
+# Mostrar mapa de deforestación filtrado
+st.subheader('Mapa de deforestación filtrado')
+gdf_deforestacion_filtrado = gpd.GeoDataFrame(df_filtrado, geometry=gdf_deforestacion.geometry)
+ax = gdf_world.plot(figsize=(10, 10), color='lightgrey')
+gdf_deforestacion_filtrado.plot(ax=ax, marker='o', color='red', markersize=5)
+st.pyplot(fig)
+
+# Análisis de clústeres
+st.subheader('Análisis de clústeres')
+df_clusters = analisis_clusters(df_filtrado)
+st.write(df_clusters[['Latitud', 'Longitud', 'Cluster']].head())
+
+# Mostrar gráfico de torta
+st.subheader('Gráfico de torta según tipo de vegetación')
+grafico_torta(df_filtrado)
